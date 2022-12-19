@@ -532,7 +532,6 @@ function xmldb_plagiarism_turnitin_upgrade($oldversion) {
                 $dbman->add_index($table, $index);
             }
         }
-
         upgrade_plugin_savepoint(true, 2021101800, 'plagiarism', 'turnitin');
     }
 
@@ -550,6 +549,24 @@ function xmldb_plagiarism_turnitin_upgrade($oldversion) {
         }
 
         upgrade_plugin_savepoint(true, 2021121600, 'plagiarism', 'turnitin');
+    }
+
+    if ($oldversion < 2022072501) {
+        $table = new xmldb_table('plagiarism_turnitin_config');
+        $index = new xmldb_index('config_hash', XMLDB_INDEX_UNIQUE, array('config_hash'));
+        $field = new xmldb_field('config_hash', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null, 'value');
+        if ($dbman->field_exists($table, $field)) {
+            // Double-check that there is no records with a NULL value.
+            if ($DB->count_records_select('plagiarism_turnitin_config', 'config_hash IS NULL') == 0) {
+                // Delete index if exists.
+                if ($dbman->index_exists($table, $index)) {
+                    $dbman->drop_index($table, $index);
+                }
+                // Set config_hash to be NOT NULL, also set precision 255.
+                $dbman->change_field_notnull($table, $field);
+            }
+        }
+        upgrade_plugin_savepoint(true, 2022072501, 'plagiarism', 'turnitin');
     }
 
     return $result;
